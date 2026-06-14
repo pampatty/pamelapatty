@@ -448,36 +448,40 @@ function renderGrid() {
 }
 
 // ── API calls ──────────────────────────────────────────────────────────────
-async function loadAll() {
-  if (APPS_SCRIPT_URL === "INSERISCI_QUI_URL_APPS_SCRIPT") {
+function loadAll() {
+  const cbName = 'cb_' + Date.now();
+  const script = document.createElement('script');
+  script.src = APPS_SCRIPT_URL + '?callback=' + cbName;
+  script.onerror = () => {
+    setStatus("⚠️ Errore connessione");
     document.getElementById('loadingOverlay').classList.add('hidden');
-    setStatus("⚠️ Apps Script non configurato — modalità demo");
     renderGrid();
-    return;
-  }
-  try {
-    const r = await fetch(`${APPS_SCRIPT_URL}?action=getAll`);
-    const data = await r.json();
+  };
+  window[cbName] = (data) => {
     cache = data || {};
     setStatus("✓ Prenotazioni aggiornate");
-  } catch(e) {
-    setStatus("⚠️ Errore connessione");
-  }
-  document.getElementById('loadingOverlay').classList.add('hidden');
-  renderGrid();
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    renderGrid();
+    delete window[cbName];
+    document.body.removeChild(script);
+  };
+  document.body.appendChild(script);
 }
 
-async function saveSlot(key, value, indicator) {
+function saveSlot(key, value, indicator) {
   cache[key] = value;
-  try {
-    const url = `${APPS_SCRIPT_URL}?action=set&key=${encodeURIComponent(key)}&value=${encodeURIComponent(value)}`;
-    await fetch(url, { method: 'GET', mode: 'no-cors' });
+  const cbName = 'cb_' + Date.now();
+  const script = document.createElement('script');
+  script.src = APPS_SCRIPT_URL + '?action=set&key=' + encodeURIComponent(key) + '&value=' + encodeURIComponent(value) + '&callback=' + cbName;
+  window[cbName] = (data) => {
     indicator.classList.add('show');
     setTimeout(() => indicator.classList.remove('show'), 1500);
-    showToast(value ? `Apt. ${value} prenotato ✓` : 'Prenotazione rimossa');
-  } catch(e) {
-    showToast('Errore salvataggio');
-  }
+    showToast(value ? 'Apt. ' + value + ' prenotato ✓' : 'Prenotazione rimossa');
+    delete window[cbName];
+    document.body.removeChild(script);
+  };
+  script.onerror = () => { showToast('Errore salvataggio'); };
+  document.body.appendChild(script);
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
