@@ -469,16 +469,9 @@ async function loadAll() {
 
 async function saveSlot(key, value, indicator) {
   cache[key] = value;
-  if (APPS_SCRIPT_URL === "INSERISCI_QUI_URL_APPS_SCRIPT") {
-    indicator.classList.add('show');
-    setTimeout(() => indicator.classList.remove('show'), 1500);
-    return;
-  }
   try {
-    await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'set', key, value }),
-    });
+    const url = `${APPS_SCRIPT_URL}?action=set&key=${encodeURIComponent(key)}&value=${encodeURIComponent(value)}`;
+    await fetch(url, { method: 'GET', mode: 'no-cors' });
     indicator.classList.add('show');
     setTimeout(() => indicator.classList.remove('show'), 1500);
     showToast(value ? `Apt. ${value} prenotato ✓` : 'Prenotazione rimossa');
